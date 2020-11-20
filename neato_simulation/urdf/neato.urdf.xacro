@@ -4,11 +4,11 @@
   be incorporated by other urdf files (e.g. turtlebot).
   
   See neato_standalone.urdf.xacro for a standalone urdf to be tested with
-      neato_description/launch/view_model.launch
+      neato_simulation/launch/view_model.launch
  -->
 <robot name="neato" xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:include filename="$(find neato_description)/urdf/common_properties.urdf.xacro"/>
-  <xacro:include filename="$(find neato_description)/urdf/neato_gazebo.urdf.xacro"/>
+  <xacro:include filename="$(find neato_simulation)/urdf/common_properties.urdf.xacro"/>
+  <xacro:include filename="$(find neato_simulation)/urdf/neato_gazebo.urdf.xacro"/>
   
   <!-- neato --> 
   <xacro:macro name="neato">
@@ -23,7 +23,7 @@
     <link name="base_link">
       <visual>
         <geometry>
-          <mesh filename="package://neato_description/meshes/main_body.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://neato_simulation/meshes/main_body.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <material name="dark_grey"/>
@@ -58,7 +58,7 @@
     <link name="wheel_left_link">
       <visual>
         <geometry>
-          <mesh filename="package://neato_description/meshes/wheel.dae"/>
+          <mesh filename="package://neato_simulation/meshes/wheel.dae"/>
         </geometry>
         <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </visual>
@@ -86,7 +86,7 @@
     <link name="wheel_right_link">
       <visual>
         <geometry>
-          <mesh filename="package://neato_description/meshes/wheel.dae"/>
+          <mesh filename="package://neato_simulation/meshes/wheel.dae"/>
         </geometry>
         <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
       </visual>
