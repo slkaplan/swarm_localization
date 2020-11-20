@@ -7,7 +7,9 @@
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="sam@todo.todo">sam</maintainer>
+  <maintainer email="lhunter@olin.edu">Luke Nonas-Hunter</maintainer>
+  <maintainer email="skaplan1@olin.edu">Sam Kaplan</maintainer>
+
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -48,12 +50,15 @@
   <!--   <test_depend>gtest</test_depend> -->
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
-  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_plugins</exec_depend>
+  <exec_depend>neato_simulation</exec_depend>
 
+  <buildtool_depend>catkin</buildtool_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+    
   </export>
 </package>
