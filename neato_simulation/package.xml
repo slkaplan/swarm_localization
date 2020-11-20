@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>swarm_localization</name>
+  <name>neato_simulation</name>
   <version>0.0.0</version>
-  <description>The swarm_localization package</description>
+  <description>The neato_simulation package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="lhunter@olin.edu">Luke Nonas-Hunter</maintainer>
   <maintainer email="skaplan1@olin.edu">Sam Kaplan</maintainer>
-
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -27,7 +26,9 @@
   <!-- Author tags are optional, multiple are allowed, one per tag -->
   <!-- Authors do not have to be maintainers, but could be -->
   <!-- Example: -->
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  <author email="pieter.vanzutven@segula.nl">Pieter van Zutven</author>
+  <author email="ferguson@cs.albany.edu">Michael Ferguson</author>
+  <author email="paul.ruvolo@olin.edu">Paul Ruvolo</author>
 
 
   <!-- The *depend tags are used to specify dependencies -->
@@ -52,13 +53,51 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>gazebo_plugins</exec_depend>
-  <exec_depend>neato_simulation</exec_depend>
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
 
   <buildtool_depend>catkin</buildtool_depend>
+  
+  <build_depend>camera_info_manager</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>laser_geometry</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  
+  <build_export_depend>camera_info_manager</build_export_depend>
+  <build_export_depend>cv_bridge</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>image_transport</build_export_depend>
+  <build_export_depend>laser_geometry</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>tf</build_export_depend>
+  
+  <exec_depend>camera_info_manager</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>laser_geometry</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-    
+    <rosdoc config="rosdoc.yaml" />
+    <gazebo_ros gazebo_model_path="${prefix}/model" />
   </export>
 </package>
