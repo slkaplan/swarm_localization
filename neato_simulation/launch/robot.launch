@@ -8,8 +8,9 @@
   <arg name="x" default="0"/>
   <arg name="y" default="0"/>
   <arg name="z" default="1.5"/>
+  <arg name="body_color" default="dark_grey"/>
   <param name="robot_description"
-        command="$(find xacro)/xacro '$(find neato_simulation)/urdf/neato_standalone.urdf.xacro' load_camera:=$(arg load_camera) use_gpu_laser:=$(arg use_gpu_laser)"/>
+        command="$(find xacro)/xacro '$(find neato_simulation)/urdf/neato_standalone.urdf.xacro' load_camera:=$(arg load_camera) use_gpu_laser:=$(arg use_gpu_laser) body_color:=$(arg body_color)"/>
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_$(arg robot_name)" 
         args="-x $(arg x) -y $(arg y) -z $(arg z) -unpause -urdf -param robot_description -model $(arg robot_name)" respawn="false">
   </node>

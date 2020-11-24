@@ -26,7 +26,7 @@
           <mesh filename="package://neato_simulation/meshes/main_body.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <material name="dark_grey"/>
+        <material name="$(arg body_color)"/>
       </visual>
       <collision>
         <geometry>
