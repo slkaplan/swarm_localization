@@ -27,18 +27,17 @@ class GetImage(object):
         rospy.init_node('ball_tracker')
         self.cv_image = None                        # the latest image from the camera
         self.binary_image = None                    # the latest image passed through a color filter
-        self.cut_out_image = None                   # Result of cv_image .* binary_image
         self.bridge = CvBridge()                    # used to convert ROS messages to OpenCV
         self.id = id
         
         self.binary_image_repeated = np.zeros((600,600,3))
-        self.KERNEL = np.ones((5,5),np.uint8)
+        self.KERNEL = np.ones((3,3),np.uint8)
 
         rospy.Subscriber(image_topic, Image, self.process_image)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         cv2.namedWindow(f'{self.id}_video_window')
         cv2.namedWindow(f'{self.id}_threshold_image')
-        cv2.namedWindow(f'{self.id}_contour_image')
+        # cv2.namedWindow(f'{self.id}_contour_image')
 
     def process_image(self, msg):
         """ Process image messages from ROS and stash them in an attribute
@@ -54,34 +53,39 @@ class GetImage(object):
         binary_image_unfiltered = cv2.bitwise_not(binary_image_inverted)
 
         # Filter Image using morphological transformations
-        filter_1 = cv2.morphologyEx(binary_image_unfiltered, cv2.MORPH_OPEN, self.KERNEL)
-        filter_2 = cv2.morphologyEx(filter_1, cv2.MORPH_CLOSE, self.KERNEL)
-        self.binary_image = filter_2
-        self.binary_image_repeated[:,:,0] = self.binary_image
-        self.binary_image_repeated[:,:,1] = self.binary_image
-        self.binary_image_repeated[:,:,2] = self.binary_image
-        print(self.cv_image)
-        self.cut_out_image = np.multiply(self.binary_image_repeated, self.cv_image)
-        self.find_contours(self.cut_out_image)
-
+        opening = cv2.morphologyEx(binary_image_unfiltered, cv2.MORPH_OPEN, self.KERNEL, iterations=2)
+        # Finding sure foreground area
+        dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
+        ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+        sure_fg = np.uint8(sure_fg)
+        # Marker labelling
+        ret, markers = cv2.connectedComponents(sure_fg)
+        self.find_contours(sure_fg)
+        self.binary_image = sure_fg
+        
     
 
-    def find_contours(self, image):
-        # Grayscale (even though its already binary)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
-        
-        # Find Canny edges 
-        edged = cv2.Canny(gray, 30, 200) 
-        
-        # keep in mind this will edit the 'edged' image 
-        contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
-        
-        
-        # Draw all contours 
-        # -1 signifies drawing all contours 
-        cv2.drawContours(image, contours, -1, (0, 255, 0), 3) 
-        
-        cv2.imshow(f'{self.id}_contour_image', image) 
+    def find_contours(self, binary_image):
+        # Find contours of binary image
+        contours, hierarchy = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
+        for contour in contours:
+            # Calculate moments for each contour
+            moment = cv2.moments(contour)
+
+            # calculate x, y coordinate of center
+            contour_x = int(moment["m10"] / moment["m00"])
+            contour_y = int(moment["m01"] / moment["m00"])
+            cv2.circle(self.cv_image, (contour_x, contour_y),
+                       5,
+                       (0, 0, 0),
+                       -1)
+            cv2.putText(self.cv_image,
+                        "centroid",
+                        (contour_x - 5, contour_y - 15),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (0, 0, 0),
+                        2)
 
 
 
@@ -93,8 +97,8 @@ class GetImage(object):
                 #print(self.cv_image.shape)
                 cv2.imshow(f'{self.id}_video_window', self.cv_image)
                 cv2.waitKey(5)
-            if not self.cut_out_image is None:
-                cv2.imshow(f'{self.id}_threshold_image', self.cut_out_image)
+            if not self.binary_image is None:
+                cv2.imshow(f'{self.id}_threshold_image', self.binary_image)
             # start out not issuing any motor commands
             r.sleep()
 
