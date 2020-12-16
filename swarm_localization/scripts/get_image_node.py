@@ -17,33 +17,49 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 
 class GetImage(object):
-    """ The BallTracker is a Python object that encompasses a ROS node 
-        that can process images from the camera and search for a ball within.
-        The node will issue motor commands to move forward while keeping
-        the ball in the center of the camera's field of view. """
+    """
+    The BallTracker is a Python object that encompasses a ROS node 
+    that can process images from the camera and search for a ball within.
+    The node will issue motor commands to move forward while keeping
+    the ball in the center of the camera's field of view.
+    """
 
-    def __init__(self, camera_topic, id):
-        """ Initialize the ball tracker """
+    def __init__(self, robot_name, id):
+        """
+        Initialize the ball tracker
+        """
         rospy.init_node('ball_tracker')
         self.cv_image = None            # the latest image from the camera
         self.binary_image = None        # the latest image passed through a color filter
         self.bridge = CvBridge()        # used to convert ROS messages to OpenCV
         self.id = id
+        self.inv_K = None
 
         self.binary_image_repeated = np.zeros((600,600,3))
         self.KERNEL = np.ones((3,3),np.uint8)
 
-        rospy.Subscriber(f"{camera_topic}/image_raw",
+        rospy.Subscriber(f"{robot_name}/camera/image_raw",
                          Image,
                          self.process_image)
+        rospy.Subscriber(f"{robot_name}/camera/camera_info",
+                         CameraInfo,
+                         self.get_camera_info)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+
+        # self.robot_pub_1 = rospy.Publisher("/robot_1", Float64MultiArray, queue_size=10)
+        # self.robot_pub_2 = rospy.Publisher("/robot_2", Float64MultiArray, queue_size=10)
+        # self.robot_pub_3 = rospy.Publisher("/robot_3", Float64MultiArray, queue_size=10)
+
+        
         cv2.namedWindow(f'{self.id}_video_window')
         cv2.namedWindow(f'{self.id}_threshold_image')
         # cv2.namedWindow(f'{self.id}_contour_image')
 
     def process_image(self, msg):
-        """ Process image messages from ROS and stash them in an attribute
-            called cv_image for subsequent processing """
+        """
+        Process image messages from ROS and stash them in an attribute
+        called cv_image for subsequent processing.
+        """
 
         # Convert ROS msg to OpenCV
         self.cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -102,6 +118,7 @@ class GetImage(object):
             # calculate x, y coordinate of center
             contour_x = int(moment["m10"] / moment["m00"])
             contour_y = int(moment["m01"] / moment["m00"])
+            # contour_y = np.max(np.where(np.sum(contour_image > 0,axis=1) > 0))
             cv2.circle(self.cv_image, (contour_x, contour_y),
                        5,
                        (0, 0, 0),
@@ -113,12 +130,45 @@ class GetImage(object):
                         0.75,
                         (0, 0, 0),
                         2)
+            print(f"Output: {self.calculate_neato_position([contour_x, contour_y, 1])}")
+            print()
+
+    def calculate_neato_position(self, pixel_coordinates):
+        """
+        Convert camera pixel coordinates to a 3D vector.
+        """
+        if self.inv_K is None:
+            return None
+        
+        vector = np.dot(self.inv_K, np.array(pixel_coordinates).T)
+        print(f"Pixel Coordinates: {np.array(pixel_coordinates).T}")
+        print(f"Vector: {vector}")
+        # TODO: Rotate by negative of pitch
+        print(f"K-Inv: {self.inv_K}")
+        height_camera = 0.25
+        height_robot = 0.09
+        constant = height_camera / vector[1]
+        output = vector * constant
+        offset_factor = height_robot / (2 * output[1])
+        offset = np.array([offset_factor * output[0],
+                           0,
+                           offset_factor * output[2]])
+        return output - offset
 
     def get_camera_info(self, msg):
-         
+        """
+        Get K matrix from a ros message and invert it.
+        """
+        if self.inv_K is None:
+            K = np.array(msg.K)
+            print(K)
+            K = np.reshape(K, (3, 3))
+            self.inv_K = np.linalg.inv(K)
 
     def run(self):
-        """ The main run loop, in this node it doesn't do anything """
+        """
+        The main run loop, in this node it doesn't do anything
+        """
         r = rospy.Rate(5)
         while not rospy.is_shutdown():
             if not self.cv_image is None:
@@ -130,9 +180,10 @@ class GetImage(object):
             # start out not issuing any motor commands
             r.sleep()
 
+
 if __name__ == '__main__':
     # redBOT = GetImage('/robot1/camera/image_raw','red')
     # redBOT.run()
 
-    yellowBOT = GetImage('/robot2/camera','yellow')
+    yellowBOT = GetImage('/robot2','yellow')
     yellowBOT.run()
