@@ -35,6 +35,8 @@ class GetImage(object):
         self.bridge = CvBridge()        # used to convert ROS messages to OpenCV
         self.id = id
         self.inv_K = None
+        
+
 
         self.current_odom_x = 0.0
         self.current_odom_y = 0.0
@@ -51,7 +53,7 @@ class GetImage(object):
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         
         # subscribes to odometry
-        self.odom_sub = rospy.Subscriber(f"{robot_name}/nav_msgs/Odometry", Odometry, self.odom_process)
+        self.odom_sub = rospy.Subscriber(f"{robot_name}/odom", Odometry, self.odom_process)
         # self.robot_pub_1 = rospy.Publisher("/robot_1", Float64MultiArray, queue_size=10)
         # self.robot_pub_2 = rospy.Publisher("/robot_2", Float64MultiArray, queue_size=10)
         # self.robot_pub_3 = rospy.Publisher("/robot_3", Float64MultiArray, queue_size=10)
@@ -167,17 +169,23 @@ class GetImage(object):
         """
         if self.inv_K is None:
             K = np.array(msg.K)
-            print(K)
+            
             K = np.reshape(K, (3, 3))
             self.inv_K = np.linalg.inv(K)
+
     def odom_process(self, msg):
         self.current_odom_x = msg.pose.pose.position.x
         self.current_odom_y = msg.pose.pose.position.y
+        print("X: " + str(self.current_odom_x))
+        print("Y: " + str(self.current_odom_y))
+        #theta = euler_from_quaternion([msg.pose.pose.orientation.x,self.y,self.z,self.w], 'sxyz')
+        print("theta: " + str(msg.pose.pose.position.y))
     def run(self):
         """
         The main run loop, in this node it doesn't do anything
         """
         r = rospy.Rate(5)
+        current_time = rospy.get_time()
         while not rospy.is_shutdown():
             if not self.cv_image is None:
                 # print(self.cv_image.shape)
@@ -186,6 +194,12 @@ class GetImage(object):
             if not self.binary_image is None:
                 cv2.imshow(f'{self.id}_threshold_image', self.binary_image)
             # start out not issuing any motor commands
+
+            if rospy.get_time() - current_time > 5.0:
+                print("SEND MESSAGE")
+
+            print(f"Time: {rospy.get_time()}")
+
             r.sleep()
 
 
