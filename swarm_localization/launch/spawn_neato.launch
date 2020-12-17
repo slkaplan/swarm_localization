@@ -7,6 +7,8 @@
   <arg name="x" default="0"/>
   <arg name="y" default="0"/>
   <arg name="z" default="1.5"/>
+  <arg name="body_color1" default="Red"/>
+  <arg name="body_color2" default="Yellow"/>
   <!-- start Gazebo with an empty world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
    <arg name="gui" value="$(arg gui)"/>
@@ -16,6 +18,7 @@
   <group ns="robot1">  
     <!-- spawn the first robot -->
      <include file="$(find neato_simulation)/launch/robot.launch">
+     <arg name="body_color" value="$(arg body_color1)"/>
      <arg name="x" value="$(arg x)"/>
      <arg name="y" value="$(arg y)"/>
      <arg name="z" value="$(arg z)"/>
@@ -28,6 +31,7 @@
   <group ns="robot2">  
     <!-- spawn the first robot -->
      <include file="$(find neato_simulation)/launch/robot.launch">
+     <arg name="body_color" value="$(arg body_color2)"/>
      <arg name="x" value="$(arg x)"/>
      <arg name="y" value="$(arg y)"/>
      <arg name="z" value="$(arg z)"/>
