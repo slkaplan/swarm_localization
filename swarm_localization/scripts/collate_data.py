@@ -7,6 +7,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import math
+import pickle
 from geometry_msgs.msg import Twist, Vector3
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
@@ -109,3 +110,5 @@ if __name__ == "__main__":
     # r.sleep()
     # print(vertex_group.verticies[1111].edge)
     rospy.spin()
+    with open(“test.pickle”, “wb”) as f:
+    pickle.dump(t,f )
