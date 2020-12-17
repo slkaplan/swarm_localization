@@ -14,30 +14,46 @@ from copy import deepcopy
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+import math
 from geometry_msgs.msg import Twist, Vector3
+from nav_msgs.msg import Odometry
+from std_msgs.msg import Float64MultiArray
+from swarm_localization.msg import Vertex
+import tf.transformations as t
 
-class GetImage(object):
+class SwarmBot(object):
     """
-    The BallTracker is a Python object that encompasses a ROS node 
-    that can process images from the camera and search for a ball within.
-    The node will issue motor commands to move forward while keeping
-    the ball in the center of the camera's field of view.
+    The GetImage is a Python object that encompasses a ROS node 
+    that can process images from the camera and recognize different colored neato robots.
+    The node will calculate 2D position data from detected robots and publish them to the 
+    /vertex object to be collected by another ROS node.
     """
 
-    def __init__(self, robot_name, id):
+    def __init__(self, robot_name, robot_id):
         """
-        Initialize the ball tracker
+        Initializes ROS node, publishers and subscribers, and sets image processing parameters
         """
-        rospy.init_node('ball_tracker')
+        rospy.init_node('get_data')
         self.cv_image = None            # the latest image from the camera
         self.binary_image = None        # the latest image passed through a color filter
         self.bridge = CvBridge()        # used to convert ROS messages to OpenCV
-        self.id = id
+        self.id = robot_id
         self.inv_K = None
+        
+
+
+        self.current_odom_x = 0.0
+        self.current_odom_y = 0.0
+        self.current_odom_theta = 0.0
+
+        self.other_robot = []
+        self.other_robot_xy = []
 
         self.binary_image_repeated = np.zeros((600,600,3))
         self.KERNEL = np.ones((3,3),np.uint8)
 
+
+        # subscribes to camera of robot given a namespace through args
         rospy.Subscriber(f"{robot_name}/camera/image_raw",
                          Image,
                          self.process_image)
@@ -45,10 +61,11 @@ class GetImage(object):
                          CameraInfo,
                          self.get_camera_info)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        
+        # subscribes to odometry
+        self.odom_sub = rospy.Subscriber(f"{robot_name}/odom", Odometry, self.odom_process)
+        self.vertex_pub = rospy.Publisher("/vertex", Vertex, queue_size=10)
 
-        # self.robot_pub_1 = rospy.Publisher("/robot_1", Float64MultiArray, queue_size=10)
-        # self.robot_pub_2 = rospy.Publisher("/robot_2", Float64MultiArray, queue_size=10)
-        # self.robot_pub_3 = rospy.Publisher("/robot_3", Float64MultiArray, queue_size=10)
 
         
         cv2.namedWindow(f'{self.id}_video_window')
@@ -105,6 +122,8 @@ class GetImage(object):
         contours, hierarchy = cv2.findContours(binary_image,
                                                cv2.RETR_EXTERNAL,
                                                cv2.CHAIN_APPROX_SIMPLE)
+        other_robot = []
+        other_robot_xy = []
         for contour in contours:
             # Calculate moments for each contour
             moment = cv2.moments(contour)
@@ -114,10 +133,17 @@ class GetImage(object):
 
             # Find the average color of the inside of the contour.
             average_color = cv2.mean(self.cv_image, contour_image)
+            b, g, r, _ = average_color
+            current_robot_id = (round(b/255) * 100) + (round(g/255) * 10) + round(r/255)
+            other_robot.append(current_robot_id)
 
             # calculate x, y coordinate of center
             contour_x = int(moment["m10"] / moment["m00"])
             contour_y = int(moment["m01"] / moment["m00"])
+            position = self.calculate_neato_position([contour_x, contour_y, 1])
+            other_robot_xy.append(position[0])
+            other_robot_xy.append(position[2])
+            
             # contour_y = np.max(np.where(np.sum(contour_image > 0,axis=1) > 0))
             cv2.circle(self.cv_image, (contour_x, contour_y),
                        5,
@@ -130,8 +156,11 @@ class GetImage(object):
                         0.75,
                         (0, 0, 0),
                         2)
+
             print(f"Output: {self.calculate_neato_position([contour_x, contour_y, 1])}")
             print()
+        self.other_robot = other_robot
+        self.other_robot_xy = other_robot_xy
 
     def calculate_neato_position(self, pixel_coordinates):
         """
@@ -161,15 +190,28 @@ class GetImage(object):
         """
         if self.inv_K is None:
             K = np.array(msg.K)
-            print(K)
+            
             K = np.reshape(K, (3, 3))
             self.inv_K = np.linalg.inv(K)
+
+    def odom_process(self, msg):
+        self.current_odom_x = msg.pose.pose.position.x
+        self.current_odom_y = msg.pose.pose.position.y
+        orientation_tuple = (msg.pose.pose.orientation.x,
+                             msg.pose.pose.orientation.y,
+                             msg.pose.pose.orientation.z,
+                             msg.pose.pose.orientation.w)
+        angles = t.euler_from_quaternion(orientation_tuple)
+        self.current_odom_theta = angles[2]
+        print("X: " + str(self.current_odom_x))
+        print("Y: " + str(self.current_odom_y))
 
     def run(self):
         """
         The main run loop, in this node it doesn't do anything
         """
         r = rospy.Rate(5)
+        current_index = math.floor(rospy.get_time() / 5)
         while not rospy.is_shutdown():
             if not self.cv_image is None:
                 # print(self.cv_image.shape)
@@ -178,12 +220,27 @@ class GetImage(object):
             if not self.binary_image is None:
                 cv2.imshow(f'{self.id}_threshold_image', self.binary_image)
             # start out not issuing any motor commands
+
+
+            print(f"Time: {math.floor(rospy.get_time() / 5)}")
+            new_index = math.floor(rospy.get_time() / 5)
+            if current_index < new_index:
+                current_index = new_index
+                vertex = Vertex(vertex_id=self.id + (current_index * 1000),
+                                x=self.current_odom_x,
+                                y=self.current_odom_y,
+                                theta=self.current_odom_theta,
+                                view=[robot_id + (current_index * 1000)
+                                      for robot_id in self.other_robot],
+                                data=self.other_robot_xy)
+                self.vertex_pub.publish(vertex)
+
             r.sleep()
 
 
 if __name__ == '__main__':
-    # redBOT = GetImage('/robot1/camera/image_raw','red')
-    # redBOT.run()
+    redBOT = SwarmBot('/robot1', 1)
+    redBOT.run()
 
-    yellowBOT = GetImage('/robot2','yellow')
-    yellowBOT.run()
+    # yellowBOT = GetImage('/robot2', 11)
+    # yellowBOT.run()
