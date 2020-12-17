@@ -21,12 +21,12 @@ from std_msgs.msg import Float64MultiArray
 from swarm_localization.msg import Vertex
 import tf.transformations as t
 
-class GetImage(object):
+class SwarmBot(object):
     """
-    The BallTracker is a Python object that encompasses a ROS node 
-    that can process images from the camera and search for a ball within.
-    The node will issue motor commands to move forward while keeping
-    the ball in the center of the camera's field of view.
+    The GetImage is a Python object that encompasses a ROS node 
+    that can process images from the camera and recognize different colored neato robots.
+    The node will calculate 2D position data from detected robots and publish them to the 
+    /vertex object to be collected by another ROS node.
     """
 
     def __init__(self, robot_name, robot_id):
@@ -52,6 +52,8 @@ class GetImage(object):
         self.binary_image_repeated = np.zeros((600,600,3))
         self.KERNEL = np.ones((3,3),np.uint8)
 
+
+        # subscribes to camera of robot given a namespace through args
         rospy.Subscriber(f"{robot_name}/camera/image_raw",
                          Image,
                          self.process_image)
@@ -237,7 +239,7 @@ class GetImage(object):
 
 
 if __name__ == '__main__':
-    redBOT = GetImage('/robot1', 1)
+    redBOT = SwarmBot('/robot1', 1)
     redBOT.run()
 
     # yellowBOT = GetImage('/robot2', 11)

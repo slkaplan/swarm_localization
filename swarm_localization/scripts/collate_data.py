@@ -14,7 +14,11 @@ from std_msgs.msg import Float64MultiArray
 from swarm_localization.msg import Vertex
 
 class VertexGroup():
-    
+    """
+    The VertexGroup is a Python object that encompasses a ROS node.
+    It listens to a topic /vertex and collects them in IndividualVertex objects.
+    Once the ROS node is killed through the terminal it will write all data to a pickle object.
+    """
     def __init__(self):
         rospy.init_node('vertex_collect')
         rospy.Subscriber("/vertex",
@@ -110,5 +114,5 @@ if __name__ == "__main__":
     # r.sleep()
     # print(vertex_group.verticies[1111].edge)
     rospy.spin()
-    with open(“test.pickle”, “wb”) as f:
-    pickle.dump(t,f )
+    with open("test.pickle", "wb") as f:
+        pickle.dump(vertex_group.verticies,f )
