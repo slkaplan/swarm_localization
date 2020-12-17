@@ -15,6 +15,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from geometry_msgs.msg import Twist, Vector3
+from nav_msgs.msg import Odometry
 
 class GetImage(object):
     """
@@ -26,7 +27,7 @@ class GetImage(object):
 
     def __init__(self, robot_name, id):
         """
-        Initialize the ball tracker
+        Initializes ROS node, publishers and subscribers, and sets image processing parameters
         """
         rospy.init_node('ball_tracker')
         self.cv_image = None            # the latest image from the camera
@@ -34,6 +35,9 @@ class GetImage(object):
         self.bridge = CvBridge()        # used to convert ROS messages to OpenCV
         self.id = id
         self.inv_K = None
+
+        self.current_odom_x = 0.0
+        self.current_odom_y = 0.0
 
         self.binary_image_repeated = np.zeros((600,600,3))
         self.KERNEL = np.ones((3,3),np.uint8)
@@ -45,7 +49,9 @@ class GetImage(object):
                          CameraInfo,
                          self.get_camera_info)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-
+        
+        # subscribes to odometry
+        self.odom_sub = rospy.Subscriber(f"{robot_name}/nav_msgs/Odometry", Odometry, self.odom_process)
         # self.robot_pub_1 = rospy.Publisher("/robot_1", Float64MultiArray, queue_size=10)
         # self.robot_pub_2 = rospy.Publisher("/robot_2", Float64MultiArray, queue_size=10)
         # self.robot_pub_3 = rospy.Publisher("/robot_3", Float64MultiArray, queue_size=10)
@@ -164,7 +170,9 @@ class GetImage(object):
             print(K)
             K = np.reshape(K, (3, 3))
             self.inv_K = np.linalg.inv(K)
-
+    def odom_process(self, msg):
+        self.current_odom_x = msg.pose.pose.position.x
+        self.current_odom_y = msg.pose.pose.position.y
     def run(self):
         """
         The main run loop, in this node it doesn't do anything
